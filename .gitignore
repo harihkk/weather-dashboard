@@ -1,14 +1,5 @@
-# Ignore Python compiled files
-*.pyc
-__pycache__/
-
-# Ignore environment files
+node_modules/
+.DS_Store
 .env
-
-# Ignore IDE files
-.vscode/
-.idea/
-
-# Ignore React build files
-frontend/node_modules/
-frontend/build/
+__pycache__/
+*.pyc

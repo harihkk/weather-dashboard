@@ -1,20 +1,21 @@
+// frontend/src/App.js
 import React, { useState } from 'react';
+import axios from 'axios';
+import Map from './components/Map';
+import WeatherCard from './components/WeatherCard';
 
 const API_URL = 'http://127.0.0.1:5000/weather';
 
 function App() {
-    const [lat, setLat] = useState('');
-    const [lon, setLon] = useState('');
+    const [coordinates, setCoordinates] = useState(null);
     const [weather, setWeather] = useState(null);
 
     const fetchWeather = async () => {
+        if (!coordinates) return;
+
         try {
-            const response = await fetch(`${API_URL}?lat=${lat}&lon=${lon}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const data = await response.json();
-            setWeather(data);
+            const response = await axios.get(`${API_URL}?lat=${coordinates.lat}&lon=${coordinates.lon}`);
+            setWeather(response.data);
         } catch (error) {
             console.error("Error fetching weather data:", error);
         }
@@ -23,26 +24,10 @@ function App() {
     return (
         <div style={{ padding: '20px' }}>
             <h1>Weather Dashboard</h1>
-            <input
-                type="text"
-                placeholder="Enter latitude"
-                value={lat}
-                onChange={(e) => setLat(e.target.value)}
-            />
-            <input
-                type="text"
-                placeholder="Enter longitude"
-                value={lon}
-                onChange={(e) => setLon(e.target.value)}
-            />
-            <button onClick={fetchWeather}>Get Weather</button>
+            <Map setCoordinates={setCoordinates} />
+            <button onClick={fetchWeather} style={{ marginTop: '10px' }}>Get Weather</button>
 
-            {weather && (
-                <div>
-                    <h2>Weather Data</h2>
-                    <pre>{JSON.stringify(weather, null, 2)}</pre>
-                </div>
-            )}
+            {weather && <WeatherCard weather={weather} />}
         </div>
     );
 }
