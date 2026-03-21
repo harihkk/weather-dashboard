@@ -1,6 +1,6 @@
-# Nimbus — Weather Dashboard
+# Nimbus Weather Dashboard
 
-A real-time weather dashboard built with React and Flask. Search any city, use your current location, and get current conditions alongside a 5-day forecast — all wrapped in a responsive, weather-adaptive UI.
+A real-time weather dashboard built with React and Flask. Search any city, use your current location, and get current conditions alongside a 5-day forecast, all wrapped in a responsive, weather-adaptive UI.
 
 ![React](https://img.shields.io/badge/React-19-blue?logo=react)
 ![Flask](https://img.shields.io/badge/Flask-3.1-green?logo=flask)
@@ -11,13 +11,13 @@ A real-time weather dashboard built with React and Flask. Search any city, use y
 ## Features
 
 - **City search** with recent search history (persisted in localStorage)
-- **Browser geolocation** — one click to get weather at your current position
-- **Current conditions** — temperature, feels-like, humidity, wind, pressure, visibility
+- **Browser geolocation** to get weather at your current position
+- **Current conditions** including temperature, feels-like, humidity, wind, pressure, visibility
 - **5-day forecast** with daily highs, lows, and weather icons
 - **Sunrise & sunset** times for the selected location
-- **°C / °F toggle** — switch units on the fly
-- **Dynamic backgrounds** — the UI adapts its color scheme based on weather conditions (clear, cloudy, rain, snow, night, etc.)
-- **Responsive design** — works on desktop, tablet, and mobile
+- **°C / °F toggle** to switch units on the fly
+- **Dynamic backgrounds** that adapt based on weather conditions (clear, cloudy, rain, snow, night, etc.)
+- **Responsive design** that works on desktop, tablet, and mobile
 
 ## Tech Stack
 
