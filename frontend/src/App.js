@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, memo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import SearchBar from './components/SearchBar';
 import CurrentWeather from './components/CurrentWeather';
@@ -8,21 +8,6 @@ import './App.css';
 
 const API = 'http://127.0.0.1:5000';
 
-// Premium spring animation timing functions - physically based with fine-tuned values
-const springs = {
-  gentle: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
-  bounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
-  elastic: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-  overshoot: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-  premium: 'cubic-bezier(0.19, 1, 0.22, 1)'
-};
-
-// Memoized component wrappers for performance
-const MemoizedCurrentWeather = memo(CurrentWeather);
-const MemoizedForecast = memo(Forecast);
-const MemoizedWeatherDetails = memo(WeatherDetails);
-
 // Error boundary component for graceful error handling
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -30,20 +15,38 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+  componentDidCatch(error) {
+    console.error('ErrorBoundary caught:', error);
   }
+
+  handleReset = () => {
+    this.setState({ hasError: false });
+    window.location.reload();
+  };
 
   render() {
     if (this.state.hasError) {
       return (
         <div className="error-boundary-fallback">
-          <h2>Something went wrong</h2>
-          <p>Please refresh the page to try again</p>
+          <div className="error-content">
+            <svg className="error-icon-large" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <h2>Something went wrong</h2>
+            <p>We encountered an unexpected error.</p>
+            <button onClick={this.handleReset} className="retry-button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 4v6h-6M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              Try Again
+            </button>
+          </div>
         </div>
       );
     }
@@ -68,7 +71,6 @@ function App() {
         }
     });
     const [animateIn, setAnimateIn] = useState(false);
-    const [entrancePhase, setEntrancePhase] = useState(0);
     const contentRef = useRef(null);
     const animationFrameRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -79,30 +81,28 @@ function App() {
         return unit === 'F' ? Math.round((celsius * 9 / 5) + 32) : Math.round(celsius);
     }, [unit]);
 
-    // Enhanced weather-based background with smooth transitions and precise weather code mapping
+    // Enhanced weather-based background with smooth transitions
     const getBackgroundClass = useMemo(() => {
         if (!weather?.weather?.[0]) return 'bg-default';
         const id = weather.weather[0].id;
         const icon = weather.weather[0].icon;
         const isNight = icon.includes('n');
 
-        // Precise OpenWeatherMap condition code mapping
-        if (id >= 200 && id < 212) return 'bg-storm'; // Thunderstorm
-        if (id >= 212 && id < 233) return 'bg-storm'; // Heavy thunderstorm
-        if (id >= 300 && id < 500) return 'bg-rain'; // Drizzle
-        if (id >= 500 && id < 504) return 'bg-rain'; // Light rain
-        if (id >= 504 && id < 600) return 'bg-storm'; // Heavy rain
-        if (id >= 600 && id < 612) return 'bg-snow'; // Snow
-        if (id >= 612 && id < 700) return 'bg-snow'; // Heavy snow
-        if (id >= 701 && id < 781) return 'bg-mist'; // Mist, fog, haze
-        if (id === 800) return isNight ? 'bg-clear-night' : 'bg-clear'; // Clear sky
-        if (id > 800 && id <= 804) return isNight ? 'bg-clouds-night' : 'bg-clouds'; // Cloudy
+        if (id >= 200 && id < 212) return 'bg-storm';
+        if (id >= 212 && id < 233) return 'bg-storm';
+        if (id >= 300 && id < 500) return 'bg-rain';
+        if (id >= 500 && id < 504) return 'bg-rain';
+        if (id >= 504 && id < 600) return 'bg-storm';
+        if (id >= 600 && id < 612) return 'bg-snow';
+        if (id >= 612 && id < 700) return 'bg-snow';
+        if (id >= 701 && id < 781) return 'bg-mist';
+        if (id === 800) return isNight ? 'bg-clear-night' : 'bg-clear';
+        if (id > 800 && id <= 804) return isNight ? 'bg-clouds-night' : 'bg-clouds';
         return isNight ? 'bg-clouds-night' : 'bg-clouds';
     }, [weather]);
 
-    // Track previous weather for smooth transitions - removed unused state
+    // Cleanup on unmount
     useEffect(() => {
-        // Cleanup function for animation frames and abort controllers
         return () => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
@@ -114,7 +114,6 @@ function App() {
     }, []);
 
     const fetchWeatherByCoords = useCallback(async (lat, lon, name) => {
-        // Cancel any pending requests
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
@@ -123,7 +122,6 @@ function App() {
         setLoading(true);
         setError(null);
         setAnimateIn(false);
-        setEntrancePhase(0);
 
         try {
             const [weatherRes, forecastRes] = await Promise.all([
@@ -131,7 +129,6 @@ function App() {
                 axios.get(`${API}/forecast?lat=${lat}&lon=${lon}`, { signal: abortControllerRef.current.signal })
             ]);
 
-            // Use requestAnimationFrame for smooth UI updates
             animationFrameRef.current = requestAnimationFrame(() => {
                 setTimeout(() => {
                     setWeather(weatherRes.data);
@@ -139,19 +136,17 @@ function App() {
                     setLocationName(name || weatherRes.data.name || 'Unknown');
                     setLastUpdated(new Date());
                     
-                    // Staggered entrance animation sequence
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             setAnimateIn(true);
-                            setEntrancePhase(1);
                         }, 80);
                     });
                 }, 50);
             });
         } catch (err) {
-            if (err.name === 'AbortError') return; // Ignore aborted requests
+            if (err.name === 'AbortError') return;
             
-            const msg = err.response?.data?.error || 'Could not fetch weather data. Please check your connection.';
+            const msg = err.response?.data?.error || 'Could not fetch weather data.';
             setError(msg);
             setLoading(false);
         }
@@ -163,22 +158,18 @@ function App() {
         setLoading(true);
         setError(null);
         setAnimateIn(false);
-        setEntrancePhase(0);
 
         try {
             const geoRes = await axios.get(`${API}/geocode?city=${encodeURIComponent(query)}`);
             const { lat, lon, name, country } = geoRes.data;
             const displayName = country && country !== 'Unknown' ? `${name}, ${country}` : name;
 
-            // Update recent searches with proper error handling
             setRecentSearches(prev => {
                 const filtered = prev.filter(s => s !== displayName);
                 const updated = [displayName, ...filtered].slice(0, 5);
                 try {
                     localStorage.setItem('nimbus_recent_searches', JSON.stringify(updated));
-                } catch {
-                    // localStorage unavailable, continue without persisting
-                }
+                } catch {}
                 return updated;
             });
 
@@ -191,14 +182,13 @@ function App() {
 
     const handleGeolocation = useCallback(() => {
         if (!navigator.geolocation) {
-            setError('Geolocation is not supported by your browser. Please search for a city instead.');
+            setError('Geolocation is not supported by your browser.');
             return;
         }
 
         setLoading(true);
         setError(null);
         setAnimateIn(false);
-        setEntrancePhase(0);
 
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -207,16 +197,16 @@ function App() {
             (err) => {
                 switch(err.code) {
                     case err.PERMISSION_DENIED:
-                        setError('Location access denied. Please enable location permissions or search for a city.');
+                        setError('Location access denied. Please enable location permissions.');
                         break;
                     case err.POSITION_UNAVAILABLE:
-                        setError('Location information unavailable. Please try again.');
+                        setError('Location information unavailable.');
                         break;
                     case err.TIMEOUT:
-                        setError('Location request timed out. Please check your connection and try again.');
+                        setError('Location request timed out.');
                         break;
                     default:
-                        setError('An error occurred while getting your location. Please search for a city.');
+                        setError('An error occurred while getting your location.');
                 }
                 setLoading(false);
             },
@@ -228,7 +218,7 @@ function App() {
         setUnit(u => u === 'C' ? 'F' : 'C');
     }, []);
 
-    // Load last searched location on mount with proper cleanup
+    // Load last searched location on mount
     useEffect(() => {
         let isMounted = true;
         
@@ -245,7 +235,6 @@ function App() {
                 abortControllerRef.current.abort();
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -269,7 +258,7 @@ function App() {
                                 className="unit-toggle" 
                                 onClick={toggleUnit} 
                                 title={`Switch to °${unit === 'C' ? 'F' : 'C'}`}
-                                aria-label={`Current unit is ${unit === 'C' ? 'Celsius' : 'Fahrenheit'}, click to switch to ${unit === 'C' ? 'Fahrenheit' : 'Celsius'}`}
+                                aria-label={`Current unit is ${unit === 'C' ? 'Celsius' : 'Fahrenheit'}`}
                                 type="button"
                             >
                                 <span className="unit-text">°{unit}</span>
@@ -297,8 +286,8 @@ function App() {
                     />
 
                     {error && (
-                        <div className="error-banner" role="alert" aria-live="assertive" aria-atomic="true">
-                            <svg className="error-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <div className="error-banner" role="alert" aria-live="assertive">
+                            <svg className="error-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10"/>
                                 <path d="M12 8v4M12 16h.01"/>
                             </svg>
@@ -318,7 +307,7 @@ function App() {
 
                     {weather && weather.cod === 200 && (
                         <main ref={contentRef} className={`weather-content ${animateIn ? 'animate-in' : ''}`} role="main">
-                            <MemoizedCurrentWeather
+                            <CurrentWeather
                                 weather={weather}
                                 locationName={locationName}
                                 convertTemp={convertTemp}
@@ -326,8 +315,8 @@ function App() {
                                 lastUpdated={lastUpdated}
                                 animateIn={animateIn}
                             />
-                            <MemoizedWeatherDetails weather={weather} animateIn={animateIn} />
-                            {forecast && <MemoizedForecast forecast={forecast} convertTemp={convertTemp} unit={unit} animateIn={animateIn} />}
+                            <WeatherDetails weather={weather} animateIn={animateIn} />
+                            {forecast && <Forecast forecast={forecast} convertTemp={convertTemp} unit={unit} animateIn={animateIn} />}
                         </main>
                     )}
 
